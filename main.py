@@ -1,30 +1,30 @@
 # University Exam Scheduling using Simulated Annealing and Streamlit Interface
-# Multi-Objective Optimization (Rubric-Compliant)
 
 import streamlit as st
 import pandas as pd
 import random
 import math
+import os
 
 st.title("University Exam Scheduling using Simulated Annealing")
 
 # -------------------------------------------------
-# Load Dataset
+# Load Dataset (FOLLOWING PREVIOUS ASSIGNMENT STYLE)
 # -------------------------------------------------
 st.subheader("Exam and Classroom Dataset")
 
-exam_file = "data/exam_timeslot.csv"
-room_file = "data/classrooms.csv"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-exams_df = pd.read_csv(exam_file)
-rooms_df = pd.read_csv(room_file)
-
-st.success("Datasets loaded successfully")
-
-st.markdown("### Exam Dataset")
+# Load exam dataset
+file_path = os.path.join(BASE_DIR, "data", "exam_timeslot.csv")
+exams_df = pd.read_csv(file_path)
+st.success("Exam dataset loaded")
 st.dataframe(exams_df)
 
-st.markdown("### Classroom Dataset")
+# Load classroom dataset
+file_path = os.path.join(BASE_DIR, "data", "classrooms.csv")
+rooms_df = pd.read_csv(file_path)
+st.success("Classroom dataset loaded")
 st.dataframe(rooms_df)
 
 # -------------------------------------------------
@@ -41,9 +41,9 @@ room_capacity = dict(zip(rooms_df["classroom_id"], rooms_df["capacity"]))
 # -------------------------------------------------
 def cost_function(schedule, alpha, beta):
     """
-    Multi-objective cost:
-    alpha = weight for capacity violation (hard constraint)
-    beta  = weight for wasted capacity (soft constraint)
+    Multi-objective cost function:
+    - Capacity violation (hard constraint)
+    - Wasted capacity (soft constraint)
     """
     capacity_violation = 0
     wasted_capacity = 0
@@ -60,13 +60,14 @@ def cost_function(schedule, alpha, beta):
     total_cost = alpha * capacity_violation + beta * wasted_capacity
     return total_cost
 
-
 # -------------------------------------------------
 # Generate Initial Solution
 # -------------------------------------------------
 def generate_initial_solution():
-    return {exam_id: random.choice(room_ids) for exam_id in exam_ids}
-
+    solution = {}
+    for exam_id in exam_ids:
+        solution[exam_id] = random.choice(room_ids)
+    return solution
 
 # -------------------------------------------------
 # Generate Neighbor Solution
@@ -76,7 +77,6 @@ def generate_neighbor(solution):
     exam_to_change = random.choice(exam_ids)
     neighbor[exam_to_change] = random.choice(room_ids)
     return neighbor
-
 
 # -------------------------------------------------
 # Simulated Annealing Algorithm
@@ -110,13 +110,10 @@ def simulated_annealing(initial_temp, cooling_rate, min_temp, alpha, beta):
 
     return best_solution, best_cost, cost_history
 
-
 # -------------------------------------------------
-# Streamlit Parameters
+# Streamlit Interface (Parameters)
 # -------------------------------------------------
 st.subheader("Simulated Annealing Parameters")
-
-generations_info = st.caption("Higher temperature & slower cooling improve exploration but increase computation.")
 
 # Trial 1
 st.markdown("### Trial 1")
@@ -135,15 +132,20 @@ cool3 = st.slider("Cooling Rate (Trial 3)", 0.85, 0.99, 0.97, step=0.01, key="c3
 
 min_temp = st.number_input("Minimum Temperature", 1, 50, 1)
 
+# Multi-objective weights (EXTENDED ANALYSIS)
 st.subheader("Multi-Objective Weights")
 alpha = st.slider("Weight for Capacity Violation (α)", 10, 100, 50)
 beta = st.slider("Weight for Wasted Capacity (β)", 1, 20, 5)
 
 # -------------------------------------------------
-# Run Experiments
+# Run and Display Results
 # -------------------------------------------------
 if st.button("Run All 3 Trials"):
-    trials = [(temp1, cool1), (temp2, cool2), (temp3, cool3)]
+    trials = [
+        (temp1, cool1),
+        (temp2, cool2),
+        (temp3, cool3)
+    ]
 
     for i, (temp, cool) in enumerate(trials, start=1):
         st.divider()
@@ -159,16 +161,20 @@ if st.button("Run All 3 Trials"):
                 "Exam ID": exam_id,
                 "Students": exam_students[exam_id],
                 "Classroom": room_id,
-                "Capacity": room_capacity[room_id]
+                "Room Capacity": room_capacity[room_id]
             })
 
         result_df = pd.DataFrame(results)
         st.dataframe(result_df)
 
-        st.success(f"Best Total Cost: {best_cost}")
-
+        st.success(f"Best Total Cost (Lower is Better): {best_cost}")
         st.line_chart(cost_history)
 
+        # Save result for documentation
         result_df.to_csv(f"trial_{i}_exam_schedule.csv", index=False)
 
-st.info("This experiment demonstrates multi-objective optimization by balancing constraint satisfaction and resource efficiency.")
+st.info(
+    "This project demonstrates multi-objective optimization in exam scheduling "
+    "by balancing constraint satisfaction and efficient classroom utilization "
+    "using Simulated Annealing."
+)
