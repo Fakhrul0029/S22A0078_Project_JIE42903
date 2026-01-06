@@ -9,31 +9,31 @@ import os
 st.title("University Exam Scheduling using Simulated Annealing")
 
 # -------------------------------------------------
-# Load Dataset (Safe Version)
+# Load Dataset (Simple Path Version)
 # -------------------------------------------------
 st.subheader("Exam and Classroom Dataset")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Exam dataset
-exam_file_path = os.path.join(BASE_DIR, "data", "exam_timeslot.csv")
+exam_file_path = os.path.join(BASE_DIR, "exam_timeslot.csv")
 if os.path.exists(exam_file_path):
     exams_df = pd.read_csv(exam_file_path)
     st.success("Exam dataset loaded successfully!")
     st.dataframe(exams_df)
 else:
     st.error(f"Exam dataset not found at: {exam_file_path}")
-    st.stop()  # Stop Streamlit execution if file is missing
+    st.stop()
 
 # Classroom dataset
-classroom_file_path = os.path.join(BASE_DIR, "data", "classrooms.csv")
+classroom_file_path = os.path.join(BASE_DIR, "classrooms.csv")
 if os.path.exists(classroom_file_path):
     rooms_df = pd.read_csv(classroom_file_path)
     st.success("Classroom dataset loaded successfully!")
     st.dataframe(rooms_df)
 else:
     st.error(f"Classroom dataset not found at: {classroom_file_path}")
-    st.stop()  # Stop Streamlit execution if file is missing
+    st.stop()
 
 # -------------------------------------------------
 # Convert Dataset to Readable Structures
