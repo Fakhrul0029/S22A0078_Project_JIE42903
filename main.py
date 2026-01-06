@@ -9,23 +9,31 @@ import os
 st.title("University Exam Scheduling using Simulated Annealing")
 
 # -------------------------------------------------
-# Load Dataset (FOLLOWING PREVIOUS ASSIGNMENT STYLE)
+# Load Dataset (Safe Version)
 # -------------------------------------------------
 st.subheader("Exam and Classroom Dataset")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load exam dataset
-file_path = os.path.join(BASE_DIR, "data", "exam_timeslot.csv")
-exams_df = pd.read_csv(file_path)
-st.success("Exam dataset loaded")
-st.dataframe(exams_df)
+# Exam dataset
+exam_file_path = os.path.join(BASE_DIR, "data", "exam_timeslot.csv")
+if os.path.exists(exam_file_path):
+    exams_df = pd.read_csv(exam_file_path)
+    st.success("Exam dataset loaded successfully!")
+    st.dataframe(exams_df)
+else:
+    st.error(f"Exam dataset not found at: {exam_file_path}")
+    st.stop()  # Stop Streamlit execution if file is missing
 
-# Load classroom dataset
-file_path = os.path.join(BASE_DIR, "data", "classrooms.csv")
-rooms_df = pd.read_csv(file_path)
-st.success("Classroom dataset loaded")
-st.dataframe(rooms_df)
+# Classroom dataset
+classroom_file_path = os.path.join(BASE_DIR, "data", "classrooms.csv")
+if os.path.exists(classroom_file_path):
+    rooms_df = pd.read_csv(classroom_file_path)
+    st.success("Classroom dataset loaded successfully!")
+    st.dataframe(rooms_df)
+else:
+    st.error(f"Classroom dataset not found at: {classroom_file_path}")
+    st.stop()  # Stop Streamlit execution if file is missing
 
 # -------------------------------------------------
 # Convert Dataset to Readable Structures
@@ -132,7 +140,7 @@ cool3 = st.slider("Cooling Rate (Trial 3)", 0.85, 0.99, 0.97, step=0.01, key="c3
 
 min_temp = st.number_input("Minimum Temperature", 1, 50, 1)
 
-# Multi-objective weights (EXTENDED ANALYSIS)
+# Multi-objective weights
 st.subheader("Multi-Objective Weights")
 alpha = st.slider("Weight for Capacity Violation (α)", 10, 100, 50)
 beta = st.slider("Weight for Wasted Capacity (β)", 1, 20, 5)
@@ -171,7 +179,9 @@ if st.button("Run All 3 Trials"):
         st.line_chart(cost_history)
 
         # Save result for documentation
-        result_df.to_csv(f"trial_{i}_exam_schedule.csv", index=False)
+        output_file = os.path.join(BASE_DIR, f"trial_{i}_exam_schedule.csv")
+        result_df.to_csv(output_file, index=False)
+        st.info(f"Trial {i} results saved to {output_file}")
 
 st.info(
     "This project demonstrates multi-objective optimization in exam scheduling "
