@@ -6,7 +6,6 @@ import random
 import math
 import os
 import time
-import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Exam Scheduling with Simulated Annealing", layout="wide")
 st.title("University Exam Scheduling using Simulated Annealing")
@@ -100,10 +99,11 @@ def simulated_annealing(initial_temp, cooling_rate, min_temp, alpha, beta, max_i
                 st.write(f"Iteration {i}: Best Cost updated = {best_cost}")
 
         cost_history.append(best_cost)
-        temperature *= cooling_rate
 
         if i % (max_iter // 10) == 0:
             st.write(f"Iteration {i}/{max_iter} | Current Best Cost: {best_cost}")
+
+        temperature *= cooling_rate
 
     elapsed = time.time() - start_time
     st.write(f"Simulated Annealing completed in {elapsed:.2f} seconds")
@@ -147,17 +147,9 @@ if st.button("Run Simulated Annealing"):
     result_df.to_csv(output_csv, index=False)
     st.success(f"Final schedule saved to {output_csv}")
 
-    # Plot convergence
-    fig, ax = plt.subplots()
-    ax.plot(history, marker="o", linestyle="-", markersize=3)
-    ax.set_title("Convergence Curve")
-    ax.set_xlabel("Iteration")
-    ax.set_ylabel("Best Cost")
-    plt.tight_layout()
-    plot_file = os.path.join(BASE_DIR, "sa_convergence.png")
-    plt.savefig(plot_file)
-    st.pyplot(fig)
-    st.info(f"Convergence plot saved to {plot_file}")
+    # Plot convergence using Streamlit native chart
+    st.subheader("Convergence Curve")
+    st.line_chart(history)
 
 st.info(
     "This project demonstrates multi-objective optimization in exam scheduling "
