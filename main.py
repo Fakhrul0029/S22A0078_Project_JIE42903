@@ -10,39 +10,33 @@ import time
 # ==============================
 # Page Configuration
 # ==============================
-st.set_page_config(page_title="Exam Scheduling with Simulated Annealing", layout="wide")
-st.title("📘 University Exam Scheduling using Simulated Annealing")
-
-st.write(
-    "This application optimizes university exam scheduling by assigning exams "
-    "to suitable classrooms using the Simulated Annealing algorithm."
+st.set_page_config(
+    page_title="Exam Scheduling with Simulated Annealing",
+    layout="wide"
 )
+
+st.title("🎓 University Exam Scheduling using Simulated Annealing")
 
 # ==============================
 # Load Datasets
 # ==============================
-st.subheader("📂 Exam and Classroom Datasets")
+st.subheader("📂 Exam and Classroom Dataset")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 exam_file = os.path.join(BASE_DIR, "exam_timeslot.csv")
 room_file = os.path.join(BASE_DIR, "classrooms.csv")
 
-if os.path.exists(exam_file):
+if os.path.exists(exam_file) and os.path.exists(room_file):
     exams_df = pd.read_csv(exam_file)
-    st.success("Exam dataset loaded successfully!")
-    st.dataframe(exams_df)
+    rooms_df = pd.read_csv(room_file)
+    st.success("Datasets loaded successfully!")
 else:
-    st.error("Exam dataset not found.")
+    st.error("Dataset files not found. Please check your repository.")
     st.stop()
 
-if os.path.exists(room_file):
-    rooms_df = pd.read_csv(room_file)
-    st.success("Classroom dataset loaded successfully!")
-    st.dataframe(rooms_df)
-else:
-    st.error("Classroom dataset not found.")
-    st.stop()
+st.dataframe(exams_df)
+st.dataframe(rooms_df)
 
 # ==============================
 # Prepare Data
@@ -54,14 +48,9 @@ exam_students = dict(zip(exams_df["exam_id"], exams_df["num_students"]))
 room_capacity = dict(zip(rooms_df["classroom_id"], rooms_df["capacity"]))
 
 # ==============================
-# Cost Function (with metrics)
+# Cost Function (Multi-objective → Single combined)
 # ==============================
 def cost_function(schedule, alpha, beta):
-    """
-    Combined objective function:
-    - Hard constraint: capacity violation
-    - Soft constraint: wasted classroom capacity
-    """
     capacity_violation = 0
     wasted_capacity = 0
 
@@ -69,7 +58,7 @@ def cost_function(schedule, alpha, beta):
         students = exam_students[exam_id]
         capacity = room_capacity[room_id]
 
-        if capacity < students:
+        if students > capacity:
             capacity_violation += (students - capacity)
         else:
             wasted_capacity += (capacity - students)
@@ -85,15 +74,20 @@ def generate_initial_solution():
 
 def generate_neighbor(solution):
     neighbor = solution.copy()
-    exam_to_change = random.choice(exam_ids)
-    neighbor[exam_to_change] = random.choice(room_ids)
+    exam = random.choice(exam_ids)
+    neighbor[exam] = random.choice(room_ids)
     return neighbor
 
 # ==============================
 # Simulated Annealing Algorithm
 # ==============================
 def simulated_annealing(
-    initial_temp, cooling_rate, min_temp, alpha, beta, max_iter
+    initial_temp,
+    cooling_rate,
+    min_temp,
+    alpha,
+    beta,
+    max_iter
 ):
     start_time = time.time()
 
@@ -106,9 +100,10 @@ def simulated_annealing(
     temperature = initial_temp
     cost_history = []
 
-    for iteration in range(max_iter):
+    for iteration in range(1, max_iter + 1):
         neighbor = generate_neighbor(current_solution)
         neighbor_cost, _, _ = cost_function(neighbor, alpha, beta)
+
         delta = neighbor_cost - current_cost
 
         if delta < 0 or random.random() < math.exp(-delta / temperature):
@@ -129,33 +124,73 @@ def simulated_annealing(
     return best_solution, best_cost, cost_history, elapsed_time
 
 # ==============================
-# Parameter Settings
+# Streamlit Parameters
 # ==============================
 st.subheader("⚙️ Simulated Annealing Parameters")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    initial_temp = st.slider("Initial Temperature", 500, 3000, 1500, step=100)
-    cooling_rate = st.slider("Cooling Rate", 0.85, 0.99, 0.95, step=0.01)
-    min_temp = st.number_input("Minimum Temperature", 1, 50, 1)
+    initial_temp = st.slider(
+        "Initial Temperature",
+        min_value=500,
+        max_value=5000,
+        value=3000,
+        step=100
+    )
+
+    cooling_rate = st.slider(
+        "Cooling Rate",
+        min_value=0.90,
+        max_value=0.99,
+        value=0.98,
+        step=0.01
+    )
+
+    min_temp = st.number_input(
+        "Minimum Temperature",
+        min_value=1,
+        value=1
+    )
 
 with col2:
-    alpha = st.slider("Capacity Violation Weight (α)", 10, 100, 50)
-    beta = st.slider("Wasted Capacity Weight (β)", 1, 20, 5)
-    max_iter = st.number_input("Maximum Iterations", 50, 500, 200)
+    max_iter = st.number_input(
+        "Maximum Iterations",
+        min_value=10,
+        value=1000,
+        step=100
+    )
+
+    alpha = st.slider(
+        "Capacity Violation Weight (α)",
+        min_value=10,
+        max_value=100,
+        value=50
+    )
+
+    beta = st.slider(
+        "Wasted Capacity Weight (β)",
+        min_value=1,
+        max_value=20,
+        value=5
+    )
 
 # ==============================
 # Run Simulated Annealing
 # ==============================
 if st.button("🚀 Run Simulated Annealing"):
-    with st.spinner("Running Simulated Annealing Optimization..."):
-        best_schedule, best_cost, history, elapsed_time = simulated_annealing(
-            initial_temp, cooling_rate, min_temp, alpha, beta, max_iter
+    with st.spinner("Running Simulated Annealing..."):
+        best_solution, best_cost, history, elapsed_time = simulated_annealing(
+            initial_temp,
+            cooling_rate,
+            min_temp,
+            alpha,
+            beta,
+            max_iter
         )
 
-    final_cost, final_violation, final_wasted = cost_function(
-        best_schedule, alpha, beta
+    final_cost, cap_violation, wasted_cap = cost_function(
+        best_solution, alpha, beta
     )
 
     # ==============================
@@ -163,32 +198,11 @@ if st.button("🚀 Run Simulated Annealing"):
     # ==============================
     st.subheader("📊 Performance Metrics")
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Final Cost", round(final_cost, 2))
-    col2.metric("Capacity Violation", final_violation)
-    col3.metric("Wasted Capacity", final_wasted)
-    col4.metric("Computation Time (s)", f"{elapsed_time:.2f}")
-
-    # ==============================
-    # Final Schedule
-    # ==============================
-    st.subheader("🗓️ Final Exam Schedule")
-
-    result_df = pd.DataFrame([
-        {
-            "Exam ID": e,
-            "Students": exam_students[e],
-            "Classroom": r,
-            "Room Capacity": room_capacity[r]
-        }
-        for e, r in best_schedule.items()
-    ])
-
-    st.dataframe(result_df, use_container_width=True)
-
-    output_csv = os.path.join(BASE_DIR, "sa_exam_schedule.csv")
-    result_df.to_csv(output_csv, index=False)
-    st.success(f"Final schedule saved to {output_csv}")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Final Cost", round(final_cost, 2))
+    m2.metric("Capacity Violation", cap_violation)
+    m3.metric("Wasted Capacity", wasted_cap)
+    m4.metric("Computation Time (s)", round(elapsed_time, 3))
 
     # ==============================
     # Convergence Curve
@@ -196,11 +210,33 @@ if st.button("🚀 Run Simulated Annealing"):
     st.subheader("📈 Convergence Curve")
     st.line_chart(history)
 
+    # ==============================
+    # Final Schedule
+    # ==============================
+    st.subheader("🗓️ Optimized Exam Schedule")
+
+    result_df = pd.DataFrame([
+        {
+            "Exam ID": exam,
+            "Students": exam_students[exam],
+            "Classroom": room,
+            "Room Capacity": room_capacity[room]
+        }
+        for exam, room in best_solution.items()
+    ])
+
+    st.dataframe(result_df, use_container_width=True)
+
+    # Save result
+    output_file = os.path.join(BASE_DIR, "sa_exam_schedule.csv")
+    result_df.to_csv(output_file, index=False)
+    st.success(f"Final schedule saved to {output_file}")
+
 # ==============================
 # Footer
 # ==============================
 st.info(
-    "This project demonstrates university exam scheduling using Simulated Annealing "
-    "by optimizing a combined objective of minimizing room capacity violations "
-    "and wasted classroom capacity."
+    "This project applies Simulated Annealing (SA), a probabilistic metaheuristic, "
+    "to solve a university exam scheduling problem by minimizing capacity violations "
+    "and wasted classroom capacity using a combined cost function."
 )
